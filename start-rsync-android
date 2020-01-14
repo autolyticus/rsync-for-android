@@ -60,6 +60,8 @@ fi
 EOF
 
 if isFirstRun "$@"; then
+    runCommandInTermux 'termux-setup-storage'
+    waitForCommand
     runCommandInTermux '(apt update) && (yes | apt upgrade) &&
                         (yes | apt install rsync)'
     waitForCommand
