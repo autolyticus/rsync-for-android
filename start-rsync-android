@@ -1,0 +1,76 @@
+#!/usr/bin/env sh
+# Copyright (C) 2020 reisub0 <reisub0@gmail.com>
+#
+# Distributed under terms of the MIT license.
+
+FIRSTRUNFILE=/var/tmp/.rsync-for-android-first-run-complete
+
+isFirstRun() {
+    if [ ! -e "$FIRSTRUNFILE" ] || [ "$1" = 'init' ] ; then
+        echo "FIRST RUN"
+        return 0
+    fi
+    return 1
+}
+
+isDeviceConnected() {
+    if [ "$(adb devices | wc -l)" -lt "3" ]; then
+        false
+    else
+        true
+    fi
+}
+
+textEscape() {
+    # From https://gist.github.com/Pistos/0bf26f46c04bc43cc95c224d264e9f39
+    text=$(printf '%s%%s' ${@})  # concatenate and replace spaces with %s
+    text=${text%%%s}  # remove the trailing %s
+    text=${text//\'/\\\'}  # escape single quotes
+    text=${text//\"/\\\"}  # escape double quotes
+    text=${text//\&/\\\&}  # escape ampersands
+    text=${text//\;/\\\;}  # escape semicolons
+    text=${text//\(/\\\(}  # escape opening parentheses
+    text=${text//\)/\\\)}  # escape closing parentheses
+    text=${text//\|/\\\|}  # escape pipes
+    echo "$text"
+}
+
+# Wait
+waitForCommand() {
+    read -p "Press ENTER to continue once the command is done."
+}
+
+# Run the command through adb shell input
+runCommandInTermux() {
+    echo "Running command: $@"
+    adb shell input text $(textEscape "$@") && adb shell input keyevent 66
+}
+
+set -e
+if ! isDeviceConnected; then
+    echo "There are no ADB devices connected. If that seems wrong, try 'adb kill-server'"
+    exit 1
+fi
+# Launch Termux activity (If it fails, terminate script execution
+adb shell <<EOF
+if am start -n com.termux/com.termux.app.TermuxActivity 2>&1 | grep Error >/dev/null ; then
+    echo "Termux doesn't seem to be installed. Please install it from the play store and initialise it."
+    exit 1
+fi
+EOF
+
+if isFirstRun "$@"; then
+    runCommandInTermux '(apt update) && (yes | apt upgrade) &&
+                        (yes | apt install rsync)'
+    waitForCommand
+    runCommandInTermux 'curl https://gitlab.com/reisub0/rsync-for-android/raw/master/rsyncd.conf
+    -o /data/data/com.termux/files/usr/etc/rsyncd.conf'
+    waitForCommand
+    touch "$FIRSTRUNFILE"
+fi
+
+runCommandInTermux 'rsync --daemon; exit'
+echo "Forwarding port TCP:8873 to localhost:8873"
+adb forward tcp:8873 tcp:8873
+echo
+echo "Successfully set up. You can now sync files using rsync://localhost:8873"
