@@ -63,7 +63,7 @@ if isFirstRun "$@"; then
     runCommandInTermux 'termux-setup-storage'
     waitForCommand
     runCommandInTermux '(apt update) && (yes | apt upgrade) &&
-                        (yes | apt install rsync)'
+                        (yes | apt install dropbear rsync)'
     waitForCommand
     runCommandInTermux 'curl https://gitlab.com/reisub0/rsync-for-android/raw/master/rsyncd.conf
     -o /data/data/com.termux/files/usr/etc/rsyncd.conf'
