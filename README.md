@@ -33,5 +33,5 @@ For copying a large number of files like a Music library or Photo gallery, `rsyn
 Backup all your photos to your Backup HDD:
 
  ```bash
-rsync --avPh --info=progress2 rsync://localhost:8873/sdcard/DCIM /media/Backup/Phone/DCIM
+rsync -avPh --info=progress2 rsync://localhost:8873/sdcard/DCIM /media/Backup/Phone/DCIM
  ```
