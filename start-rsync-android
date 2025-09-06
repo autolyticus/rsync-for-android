@@ -3,6 +3,15 @@
 #
 # Distributed under terms of the MIT license.
 
+case "$(basename "$0")" in
+    *start*)
+        ACTION=start;;
+    *stop*)
+        ACTION=stop;;
+    *)
+        ACTION=start;;
+esac
+
 FIRSTRUNFILE=/var/tmp/.rsync-for-android-first-run-complete
 
 isFirstRun() {
@@ -71,8 +80,16 @@ if isFirstRun "$@"; then
     touch "$FIRSTRUNFILE"
 fi
 
-runCommandInTermux 'rsync --daemon; exit'
-echo "Forwarding port TCP:8873 to localhost:8873"
-adb forward tcp:8873 tcp:8873
-echo
-echo "Successfully set up. You can now sync files using rsync://localhost:8873"
+if [ "$ACTION" = "start" ]; then
+    runCommandInTermux 'rsync --daemon; exit'
+    echo "Forwarding port TCP:8873 to localhost:8873"
+    adb forward tcp:8873 tcp:8873
+    echo
+    echo "Successfully set up. You can now sync files using rsync://localhost:8873"
+elif [ "$ACTION" = "stop" ]; then
+    runCommandInTermux 'ps -A|grep rsync|awk '"'{print \\\$1}'"'|xargs kill -9; exit'
+    echo "Remove Forwarding port TCP:8873"
+    adb forward --remove tcp:8873
+    echo
+    echo "Successfully stop rsync."
+fi
